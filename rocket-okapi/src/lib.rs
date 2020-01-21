@@ -1,4 +1,4 @@
-#![feature(specialization)]
+#![feature(proc_macro_hygiene, specialization)]
 #![forbid(missing_docs)]
 
 //! This projects serves to enable automatic rendering of `openapi.json` files, and provides
@@ -26,7 +26,7 @@
 //! use rocket::get;
 //! use rocket_contrib::json::Json;
 //! use rocket_okapi::{openapi, routes_with_openapi, JsonSchema};
-//! use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+//! use rocket_okapi::swagger_ui::SwaggerUIConfig;
 //!
 //! #[derive(serde::Serialize, JsonSchema)]
 //! struct Response {
@@ -54,7 +54,7 @@
 //! fn main() {
 //!     rocket::ignite()
 //!         .mount("/my_resource", routes_with_openapi![my_controller])
-//!         .mount("/swagger", make_swagger_ui(&get_docs()))
+//!         .mount("/swagger", get_docs())
 //!         .launch();
 //! }
 //! ```

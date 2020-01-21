@@ -12,8 +12,9 @@ keywords = ["rust", "openapi", "swagger", "rocket"]
 proc-macro = true
 
 [dependencies]
-rocket_http = "0.4.3"
+rocket_http = { git = "https://github.com/SergioBenitez/Rocket", branch = "async" }
 darling = "0.10"
 syn = "1.0"
 proc-macro2 = "1.0"
 quote = "1.0"
+okapi = { version = "0.4.0", path = "../okapi" }

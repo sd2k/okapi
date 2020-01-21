@@ -1,18 +1,10 @@
-use crate::handlers::{ContentHandler, RedirectHandler};
+use crate::handlers::RedirectHandler;
 use serde::{Deserialize, Serialize};
 
-use rocket::http::ContentType;
-use rocket::Route;
-
-macro_rules! static_file {
-    ($name: literal, $type: ident) => {
-        ContentHandler::bytes(
-            ContentType::$type,
-            include_bytes!(concat!("../swagger-ui/", $name)),
-        )
-        .into_route(concat!("/", $name))
-    };
-}
+use rocket::handler::{Handler, HandlerFuture, Outcome};
+use rocket::http::{ContentType, Method};
+use rocket::response::Content;
+use rocket::{get, routes, Data, Request, Route};
 
 /// Used to control the way models are displayed by default.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -127,6 +119,14 @@ impl Default for SwaggerUIConfig {
     }
 }
 
+impl Handler for SwaggerUIConfig {
+    fn handle<'r>(&self, req: &'r Request, _: Data) -> HandlerFuture<'r> {
+        let json =
+            serde_json::to_string_pretty(self).expect("Could not serialize content as JSON.");
+        Outcome::from(req, json)
+    }
+}
+
 /// Contains a named url.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UrlObject {
@@ -146,19 +146,84 @@ impl UrlObject {
     }
 }
 
-/// Transform the provided `SwaggerUIConfig` into a list of `Route`s that serve the swagger web ui.
-pub fn make_swagger_ui(config: &SwaggerUIConfig) -> impl Into<Vec<Route>> {
-    let config_handler = ContentHandler::json(config);
-    vec![
-        config_handler.into_route("/swagger-ui-config.json"),
-        RedirectHandler::to("index.html").into_route("/"),
-        static_file!("favicon-16x16.png", PNG),
-        static_file!("favicon-32x32.png", PNG),
-        static_file!("index.html", HTML),
-        static_file!("oauth2-redirect.html", HTML),
-        static_file!("swagger-ui.js", JavaScript),
-        static_file!("swagger-ui-standalone-preset.js", JavaScript),
-        static_file!("swagger-ui-bundle.js", JavaScript),
-        static_file!("swagger-ui.css", CSS),
-    ]
+#[get("/favicon-16x16.png")]
+fn favicon_16() -> Content<&'static [u8]> {
+    Content(
+        ContentType::PNG,
+        include_bytes!("../swagger-ui/favicon-16x16.png"),
+    )
+}
+
+#[get("/favicon-32x32.png")]
+fn favicon_32() -> Content<&'static [u8]> {
+    Content(
+        ContentType::PNG,
+        include_bytes!("../swagger-ui/favicon-32x32.png"),
+    )
+}
+
+#[get("/index.html")]
+fn index() -> Content<&'static [u8]> {
+    Content(
+        ContentType::HTML,
+        include_bytes!("../swagger-ui/index.html"),
+    )
+}
+
+#[get("/oauth2_redirect.html")]
+fn oauth2_redirect() -> Content<&'static [u8]> {
+    Content(
+        ContentType::HTML,
+        include_bytes!("../swagger-ui/oauth2-redirect.html"),
+    )
+}
+
+#[get("/swagger-ui.js")]
+fn swagger_ui_js() -> Content<&'static [u8]> {
+    Content(
+        ContentType::JavaScript,
+        include_bytes!("../swagger-ui/swagger-ui.js"),
+    )
+}
+
+#[get("/swagger-ui-standalone-preset.js")]
+fn swagger_ui_standalone_preset_js() -> Content<&'static [u8]> {
+    Content(
+        ContentType::JavaScript,
+        include_bytes!("../swagger-ui/swagger-ui-standalone-preset.js"),
+    )
+}
+
+#[get("/swagger-ui-bundle.js")]
+fn swagger_ui_bundle_js() -> Content<&'static [u8]> {
+    Content(
+        ContentType::JavaScript,
+        include_bytes!("../swagger-ui/swagger-ui-bundle.js"),
+    )
+}
+
+#[get("/swagger-ui.css")]
+fn swagger_ui_css() -> Content<&'static [u8]> {
+    Content(
+        ContentType::CSS,
+        include_bytes!("../swagger-ui/swagger-ui.css"),
+    )
+}
+
+impl Into<Vec<Route>> for SwaggerUIConfig {
+    fn into(self) -> Vec<Route> {
+        let mut routes = routes![
+            favicon_16,
+            favicon_32,
+            index,
+            oauth2_redirect,
+            swagger_ui_js,
+            swagger_ui_standalone_preset_js,
+            swagger_ui_bundle_js,
+            swagger_ui_css,
+        ];
+        routes.push(RedirectHandler::to("index.html").into_route("/"));
+        routes.push(Route::new(Method::Get, "/swagger-ui-config.json", self));
+        routes
+    }
 }

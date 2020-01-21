@@ -56,10 +56,10 @@ pub fn make_rocket() -> rocket::Rocket {
         // You can optionally host swagger-ui too
         .mount(
             "/swagger-ui/",
-            make_swagger_ui(&SwaggerUIConfig {
+            SwaggerUIConfig {
                 url: "../openapi.json".to_owned(),
                 ..Default::default()
-            }),
+            },
         )
 }
 ```

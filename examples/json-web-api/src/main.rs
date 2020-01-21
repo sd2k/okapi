@@ -106,10 +106,11 @@ fn main() {
         )
         .mount(
             "/swagger-ui/",
-            make_swagger_ui(&SwaggerUIConfig {
+            SwaggerUIConfig {
                 url: "../openapi.json".to_owned(),
                 ..Default::default()
-            }),
+            },
         )
-        .launch();
+        .launch()
+        .unwrap();
 }
