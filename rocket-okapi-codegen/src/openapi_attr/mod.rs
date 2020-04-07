@@ -115,6 +115,21 @@ fn create_route_operation_fn(route_fn: ItemFn, route: route_attr::Route) -> Toke
     let path = route.origin.path().replace("<", "{").replace(">", "}");
     let method = Ident::new(&to_pascal_case_string(route.method), Span::call_site());
     let (title, desc) = doc_attr::get_title_and_desc_from_doc(&route_fn.attrs);
+    let doc = match (&title, &desc) {
+        (Some(t), Some(d)) => format!(
+            "OpenAPI code generated wrapping route function.\n\n{}\n\n{}",
+            t, d
+        ),
+        (Some(t), None) => format!(
+            "OpenAPI code generated wrapping route function.\n\n{}",
+            t.clone()
+        ),
+        (None, Some(d)) => format!(
+            "OpenAPI code generated wrapping route function.\n\n{}",
+            d.clone()
+        ),
+        _ => "OpenAPI code generated wrapping route function.".to_string(),
+    };
     let title = match title {
         Some(x) => quote!(Some(#x.to_owned())),
         None => quote!(None),
@@ -125,6 +140,7 @@ fn create_route_operation_fn(route_fn: ItemFn, route: route_attr::Route) -> Toke
     };
 
     TokenStream::from(quote! {
+        #[doc = #doc]
         pub fn #fn_name(
             gen: &mut ::rocket_okapi::gen::OpenApiGenerator,
             op_id: String,
