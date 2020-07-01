@@ -1,7 +1,7 @@
 use crate::handlers::RedirectHandler;
 use serde::{Deserialize, Serialize};
 
-use rocket::handler::{Handler, HandlerFuture, Outcome};
+use rocket::handler::{Handler, Outcome};
 use rocket::http::{ContentType, Method};
 use rocket::response::Content;
 use rocket::{get, routes, Data, Request, Route};
@@ -119,8 +119,9 @@ impl Default for SwaggerUIConfig {
     }
 }
 
+#[rocket::async_trait]
 impl Handler for SwaggerUIConfig {
-    fn handle<'r>(&self, req: &'r Request, _: Data) -> HandlerFuture<'r> {
+    async fn handle<'r, 's: 'r>(&'s self, req: &'r Request<'_>, _: Data) -> Outcome<'r> {
         let json =
             serde_json::to_string_pretty(self).expect("Could not serialize content as JSON.");
         Outcome::from(req, json)

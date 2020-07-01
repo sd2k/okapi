@@ -91,7 +91,8 @@ fn create_post_by_query(post: Form<Post>) -> Option<Json<Post>> {
     Some(Json(post.into_inner()))
 }
 
-fn main() {
+#[rocket::main]
+async fn main() {
     rocket::ignite()
         .mount(
             "/",
@@ -112,5 +113,6 @@ fn main() {
             },
         )
         .launch()
+        .await
         .unwrap();
 }

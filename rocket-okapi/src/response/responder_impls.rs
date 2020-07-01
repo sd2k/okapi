@@ -10,7 +10,7 @@ use std::result::Result as StdResult;
 
 type Result = crate::Result<Responses>;
 
-impl<T: JsonSchema + Serialize + Send> OpenApiResponder<'_> for Json<T> {
+impl<'r, T: JsonSchema + Serialize + Send> OpenApiResponder<'r, 'static> for Json<T> {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         let mut responses = Responses::default();
         let schema = gen.json_schema::<T>();
@@ -19,7 +19,7 @@ impl<T: JsonSchema + Serialize + Send> OpenApiResponder<'_> for Json<T> {
     }
 }
 
-impl OpenApiResponder<'_> for JsonValue {
+impl<'r> OpenApiResponder<'r, 'static> for JsonValue {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         let mut responses = Responses::default();
         let schema = gen.schema_generator().schema_for_any();
@@ -28,7 +28,7 @@ impl OpenApiResponder<'_> for JsonValue {
     }
 }
 
-impl OpenApiResponder<'_> for String {
+impl<'r> OpenApiResponder<'r, 'static> for String {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         let mut responses = Responses::default();
         let schema = gen.json_schema::<String>();
@@ -37,13 +37,13 @@ impl OpenApiResponder<'_> for String {
     }
 }
 
-impl<'r> OpenApiResponder<'r> for &'r str {
+impl<'r, 'o: 'r> OpenApiResponder<'r, 'o> for &'o str {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         <String>::responses(gen)
     }
 }
 
-impl OpenApiResponder<'_> for Vec<u8> {
+impl<'r> OpenApiResponder<'r, 'static> for Vec<u8> {
     fn responses(_: &mut OpenApiGenerator) -> Result {
         let mut responses = Responses::default();
         add_content_response(
@@ -56,13 +56,13 @@ impl OpenApiResponder<'_> for Vec<u8> {
     }
 }
 
-impl<'r> OpenApiResponder<'r> for &'r [u8] {
+impl<'r, 'o: 'r> OpenApiResponder<'r, 'o> for &'o [u8] {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         <Vec<u8>>::responses(gen)
     }
 }
 
-impl OpenApiResponder<'_> for () {
+impl<'r> OpenApiResponder<'r, 'static> for () {
     fn responses(_: &mut OpenApiGenerator) -> Result {
         let mut responses = Responses::default();
         ensure_status_code_exists(&mut responses, 200);
@@ -70,7 +70,7 @@ impl OpenApiResponder<'_> for () {
     }
 }
 
-impl<'r, T: OpenApiResponder<'r>> OpenApiResponder<'r> for Option<T> {
+impl<'r, T: OpenApiResponder<'r, 'static>> OpenApiResponder<'r, 'static> for Option<T> {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         let mut responses = T::responses(gen)?;
         ensure_status_code_exists(&mut responses, 404);
@@ -80,7 +80,7 @@ impl<'r, T: OpenApiResponder<'r>> OpenApiResponder<'r> for Option<T> {
 
 macro_rules! status_responder {
     ($responder: ident, $status: literal) => {
-        impl<'r, T: OpenApiResponder<'r> + 'r> OpenApiResponder<'r>
+        impl<'r, 'o: 'r, T: OpenApiResponder<'r, 'o> + 'r> OpenApiResponder<'r, 'o>
             for rocket::response::status::$responder<T>
         {
             fn responses(gen: &mut OpenApiGenerator) -> Result {
@@ -111,7 +111,7 @@ status_responder!(NotFound, 404);
 
 macro_rules! response_content_wrapper {
     ($responder: ident, $mime: literal) => {
-        impl<'r, T: OpenApiResponder<'r> + 'r> OpenApiResponder<'r>
+        impl<'r, 'o: 'r, T: OpenApiResponder<'r, 'o> + 'r> OpenApiResponder<'r, 'o>
             for rocket::response::content::$responder<T>
         {
             fn responses(gen: &mut OpenApiGenerator) -> Result {
@@ -131,7 +131,7 @@ response_content_wrapper!(MsgPack, "application/msgpack");
 response_content_wrapper!(Plain, "text/plain");
 response_content_wrapper!(Xml, "text/xml");
 
-impl<'r, T: OpenApiResponder<'r>, E: Responder<'r> + Send> OpenApiResponder<'r>
+impl<'r, 'o: 'r, T: OpenApiResponder<'r, 'o>, E: Responder<'r, 'o> + Send> OpenApiResponder<'r, 'o>
     for StdResult<T, E>
 {
     default fn responses(gen: &mut OpenApiGenerator) -> Result {
@@ -141,8 +141,8 @@ impl<'r, T: OpenApiResponder<'r>, E: Responder<'r> + Send> OpenApiResponder<'r>
     }
 }
 
-impl<'r, T: OpenApiResponder<'r>, E: OpenApiResponder<'r> + Debug> OpenApiResponder<'r>
-    for StdResult<T, E>
+impl<'r, 'o: 'r, T: OpenApiResponder<'r, 'o>, E: OpenApiResponder<'r, 'o> + Debug>
+    OpenApiResponder<'r, 'o> for StdResult<T, E>
 {
     fn responses(gen: &mut OpenApiGenerator) -> Result {
         let ok_responses = T::responses(gen)?;
