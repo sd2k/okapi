@@ -12,12 +12,10 @@ serde = "1.0"
 
 [dependencies.rocket]
 git = "https://github.com/SergioBenitez/Rocket"
-branch = "async"
 default-features = false
 
 [dependencies.rocket_contrib]
 git = "https://github.com/SergioBenitez/Rocket"
-branch = "async"
 default-features = false
 features = ["json"]
 
